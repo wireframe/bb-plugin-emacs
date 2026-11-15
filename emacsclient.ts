@@ -3,7 +3,12 @@ export interface EmacsTarget {
   line: number | null;
 }
 
-/** `-n` returns at once instead of waiting until the buffer is closed. */
+/**
+ * `--reuse-frame` creates a frame when a daemon has none, so the file is
+ * always visible; `--no-wait` returns at once instead of blocking until the
+ * buffer is closed.
+ */
 export function emacsclientArgs({ path, line }: EmacsTarget): string[] {
-  return line === null ? ["-n", path] : ["-n", `+${line}`, path];
+  const position = line === null ? [] : [`+${line}`];
+  return ["--reuse-frame", "--no-wait", ...position, path];
 }

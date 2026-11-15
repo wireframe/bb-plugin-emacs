@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   definePluginApp,
   useRpc,
@@ -20,15 +20,21 @@ const EXTENSIONS = [
 ];
 
 type SendState =
+  | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "sent" }
   | { kind: "failed"; message: string };
 
+/**
+ * Sends only on an explicit click. bb remounts file tabs when it restores a
+ * thread's panel, and an opener cannot tell that from a fresh open, so
+ * sending on mount opens Emacs every time a thread is selected.
+ */
 function useSendToEmacs(props: PluginFileOpenerProps) {
   const rpc = useRpc<typeof rpcContract>();
-  const [state, setState] = useState<SendState>({ kind: "sending" });
+  const [state, setState] = useState<SendState>({ kind: "idle" });
   const { path, source, experimental_lineRange: lineRange } = props;
-  const send = useCallback(() => {
+  const send = () => {
     setState({ kind: "sending" });
     rpc
       .call("open_file", {
@@ -41,13 +47,12 @@ function useSendToEmacs(props: PluginFileOpenerProps) {
         (cause: unknown) =>
           setState({ kind: "failed", message: String(cause) }),
       );
-    // Each targeted open passes a new lineRange object, so it re-sends.
-  }, [rpc, path, source, lineRange]);
-  useEffect(send, [send]);
+  };
   return { state, send };
 }
 
 function statusText(state: SendState): string {
+  if (state.kind === "idle") return "";
   if (state.kind === "sending") return "Sending to Emacs…";
   if (state.kind === "sent") return "Opened in Emacs.";
   return `Emacs did not open the file: ${state.message}`;
@@ -68,7 +73,7 @@ function EmacsOpener(props: PluginFileOpenerProps) {
           {statusText(state)}
         </span>
         <Button variant="ghost" size="sm" className="ml-auto" onClick={send}>
-          Open in Emacs again
+          Open in Emacs
         </Button>
       </div>
       <div className="min-h-0 flex-1">

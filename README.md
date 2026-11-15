@@ -1,13 +1,16 @@
 # bb-plugin-emacs
 
-A prototype bb plugin. When you open a file in bb, it sends that file to your
-running Emacs through `emacsclient`. bb's own preview stays in the tab.
+A prototype bb plugin. A file tab in bb gets an **Open in Emacs** button that
+sends the file to your running Emacs through `emacsclient`. bb's own preview
+stays in the tab.
 
 ## How it works
 
 1. `app.tsx` registers a **file opener** named "Emacs" for common code and
-   text extensions. When bb opens a matching file, the opener calls the
-   server's `open_file` RPC. It sends the line number too, if bb has one.
+   text extensions. It adds the button above bb's preview. A click calls the
+   server's `open_file` RPC, with the target line when bb has one. The tab
+   never sends on its own: bb remounts file tabs when you select a thread,
+   and an opener cannot tell a remount from a fresh open.
 2. `server.ts` and `resolve-file.ts` turn bb's path into an absolute path. A
    workspace path is relative to the worktree, and a thread-storage path is
    relative to the thread's storage directory. The server also finds the host
